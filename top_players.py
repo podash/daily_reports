@@ -64,14 +64,16 @@ def _top_casino_profit(target_date: date, limit: int = 5) -> list[dict]:
     """Top N players by casino profit (winnings - bets), profit > 0."""
     rows = execute_query(
         """
-        SELECT user_id AS player_id,
-               ROUND((SUM(winnings_usd) - SUM(turnover_usd))::numeric, 0) AS amount_usd,
-               ROUND(SUM(winnings_usd)::numeric, 0)  AS winnings_usd,
-               ROUND(SUM(turnover_usd)::numeric, 0)  AS bets_usd
-        FROM aggregates.daily_player_casino_totals
-        WHERE stat_date = %s
-        GROUP BY user_id
-        HAVING SUM(winnings_usd) - SUM(turnover_usd) > 0
+        SELECT t.user_id AS player_id,
+               ROUND((SUM(t.winnings_usd) - SUM(t.turnover_usd))::numeric, 0) AS amount_usd,
+               ROUND(SUM(t.winnings_usd)::numeric, 0)  AS winnings_usd,
+               ROUND(SUM(t.turnover_usd)::numeric, 0)  AS bets_usd
+        FROM aggregates.daily_player_casino_totals t
+        LEFT JOIN aggregates.player_profile pp ON pp.user_id = t.user_id
+        WHERE t.stat_date = %s
+          AND COALESCE(pp.is_partner, false) = false
+        GROUP BY t.user_id
+        HAVING SUM(t.winnings_usd) - SUM(t.turnover_usd) > 0
         ORDER BY amount_usd DESC
         LIMIT %s
         """,
@@ -92,14 +94,16 @@ def _top_sport_profit(target_date: date, limit: int = 5) -> list[dict]:
     """Top N players by sport profit (winnings - bets), profit > 0."""
     rows = execute_query(
         """
-        SELECT user_id AS player_id,
-               ROUND((SUM(winnings_usd) - SUM(turnover_usd))::numeric, 0) AS amount_usd,
-               ROUND(SUM(winnings_usd)::numeric, 0)  AS winnings_usd,
-               ROUND(SUM(turnover_usd)::numeric, 0)  AS bets_usd
-        FROM aggregates.daily_player_sport_totals
-        WHERE stat_date = %s
-        GROUP BY user_id
-        HAVING SUM(winnings_usd) - SUM(turnover_usd) > 0
+        SELECT t.user_id AS player_id,
+               ROUND((SUM(t.winnings_usd) - SUM(t.turnover_usd))::numeric, 0) AS amount_usd,
+               ROUND(SUM(t.winnings_usd)::numeric, 0)  AS winnings_usd,
+               ROUND(SUM(t.turnover_usd)::numeric, 0)  AS bets_usd
+        FROM aggregates.daily_player_sport_totals t
+        LEFT JOIN aggregates.player_profile pp ON pp.user_id = t.user_id
+        WHERE t.stat_date = %s
+          AND COALESCE(pp.is_partner, false) = false
+        GROUP BY t.user_id
+        HAVING SUM(t.winnings_usd) - SUM(t.turnover_usd) > 0
         ORDER BY amount_usd DESC
         LIMIT %s
         """,
@@ -151,13 +155,15 @@ def _top_sport_winnings(target_date: date) -> list[dict]:
 def _top_deposits(target_date: date, limit: int = 5) -> list[dict]:
     rows = execute_query(
         """
-        SELECT parent_id AS player_id,
-               ROUND(SUM(converted_amount)::numeric, 0) AS amount_usd
-        FROM public.bet_deposits
-        WHERE date_only = %s
-          AND status = 'OK'
-          AND converted_amount > 0
-        GROUP BY parent_id
+        SELECT bd.parent_id AS player_id,
+               ROUND(SUM(bd.converted_amount)::numeric, 0) AS amount_usd
+        FROM public.bet_deposits bd
+        LEFT JOIN aggregates.player_profile pp ON pp.user_id = bd.parent_id
+        WHERE bd.date_only = %s
+          AND bd.status = 'OK'
+          AND bd.converted_amount > 0
+          AND COALESCE(pp.is_partner, false) = false
+        GROUP BY bd.parent_id
         ORDER BY amount_usd DESC
         LIMIT %s
         """,
@@ -169,13 +175,15 @@ def _top_deposits(target_date: date, limit: int = 5) -> list[dict]:
 def _top_withdrawals(target_date: date, limit: int = 5) -> list[dict]:
     rows = execute_query(
         """
-        SELECT parent_id AS player_id,
-               ROUND(SUM(converted_amount)::numeric, 0) AS amount_usd
-        FROM public.bet_withdrawals
-        WHERE date_only = %s
-          AND status = 'Approved'
-          AND converted_amount > 0
-        GROUP BY parent_id
+        SELECT bw.parent_id AS player_id,
+               ROUND(SUM(bw.converted_amount)::numeric, 0) AS amount_usd
+        FROM public.bet_withdrawals bw
+        LEFT JOIN aggregates.player_profile pp ON pp.user_id = bw.parent_id
+        WHERE bw.date_only = %s
+          AND bw.status = 'Approved'
+          AND bw.converted_amount > 0
+          AND COALESCE(pp.is_partner, false) = false
+        GROUP BY bw.parent_id
         ORDER BY amount_usd DESC
         LIMIT %s
         """,

@@ -1,0 +1,70 @@
+{
+  "affiliate 1": {
+    "name": "Kivanc",
+    "email": "kayatalu@betandyou.com"
+  },
+  "affiliate 2": {
+    "name": "Emil",
+    "email": "affiliate1@betandyou.com"
+  },
+  "affiliate 3": {
+    "name": "Emre",
+    "email": "affiliates@betandyou.com"
+  },
+  "affiliate 4": {
+    "name": "Lada",
+    "email": "affiliate4@betandyou.com"
+  },
+  "affiliate 5": {
+    "name": "Viacheslav",
+    "email": "affiliate2@betandyou.com"
+  },
+  "affiliate 6": {
+    "name": "Murat",
+    "email": "affiliate3@betandyou.com"
+  },
+  "affiliate 7": {
+    "name": "Anastasiia",
+    "email": "affiliate7@betandyou.com"
+  },
+  "affiliate 10": {
+    "name": "Chaoui",
+    "email": "affiliate10@betandyou.com"
+  },
+  "affiliate 11": {
+    "name": "Zineddine",
+    "email": "affiliate11@betandyou.com"
+  },
+  "affiliate 12": {
+    "name": "Shakir",
+    "email": "affiliate5@betandyou.com"
+  },
+  "affiliate 14": {
+    "name": "Olha",
+    "email": "affiliate14@betandyou.com"
+  },
+  "affiliate 15": {
+    "name": "Vadim",
+    "email": "affiliate16@betandyou.com"
+  },
+  "affiliate 16": {
+    "name": "Taras",
+    "email": "affiliate12@betandyou.com"
+  },
+  "affiliate 17": {
+    "name": "Polina",
+    "email": "affiliate17@betandyou.com"
+  },
+  "mediabuy gleb": {
+    "name": "Gleb",
+    "email": "mediabuyer1@betandyou.com"
+  },
+  "mobcash support": {
+    "name": "Anton",
+    "email": "mobcash.support@betandyou.com,mobcashhead@betandyou.com"
+  },
+  "mobile cash 1": {
+    "name": "Lidia",
+    "email": "mobcashhead@betandyou.com"
+  }
+}

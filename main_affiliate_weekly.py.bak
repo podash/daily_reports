@@ -27,6 +27,7 @@ from config import LOG_DIR, EMAIL_RECIPIENTS
 from affiliate_weekly_metrics import collect_weekly_metrics
 from affiliate_weekly_builder import build_weekly_report, build_weekly_subject
 from email_sender import send_email
+from telegram_sender import send_alert
 
 # ---------------------------------------------------------------------------
 # Focus GEO: comma-separated country names in .env
@@ -41,34 +42,13 @@ _DEFAULT_FOCUS_GEO = (
 _raw_geo = os.getenv("AFFILIATE_FOCUS_GEO", _DEFAULT_FOCUS_GEO)
 FOCUS_GEO: list[str] = [c.strip() for c in _raw_geo.split(",") if c.strip()]
 
-# Base recipients added to every manager report (CMO, CFO)
-_raw_base = os.getenv("AFFILIATE_BASE_RECIPIENTS", "cmo@betandyou.com,cfo@betandyou.com")
-AFFILIATE_BASE_RECIPIENTS: list[str] = [r.strip() for r in _raw_base.split(",") if r.strip()]
-
-_MANAGER_EMAILS_FILE = Path(__file__).parent / "manager_emails.json"
-
-
-def _load_manager_emails() -> dict[str, dict]:
-    try:
-        return json.loads(_MANAGER_EMAILS_FILE.read_text(encoding="utf-8"))
-    except Exception as e:
-        logger.error("Failed to load manager_emails.json: %s", e)
-        return {}
-
-
-def _get_recipients(manager_group: str | None) -> list[str]:
-    """Return [manager_email] + base recipients. Falls back to base only if no email found."""
-    emails = _load_manager_emails()
-    recipients = list(AFFILIATE_BASE_RECIPIENTS)
-    if manager_group:
-        entry = emails.get(manager_group.lower().strip())
-        if entry and entry.get("email"):
-            mgr_emails = [e.strip() for e in entry["email"].split(",") if e.strip()]
-            for e in reversed(mgr_emails):
-                recipients.insert(0, e)
-        else:
-            logger.warning("No email found for manager '%s' in manager_emails.json", manager_group)
-    return recipients
+# Affiliate report recipients (separate from daily report)
+_raw_rec = os.getenv("AFFILIATE_EMAIL_RECIPIENTS", "")
+AFFILIATE_RECIPIENTS: list[str] = (
+    [r.strip() for r in _raw_rec.split(",") if r.strip()]
+    if _raw_rec.strip()
+    else EMAIL_RECIPIENTS
+)
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -132,7 +112,6 @@ def run(
     dry_run: bool = False,
     preview: bool = False,
     manager_group: str | None = None,
-    recipients: list[str] | None = None,
 ) -> None:
     slug = _manager_slug(manager_group)
     logger.info(
@@ -151,6 +130,8 @@ def run(
         data = collect_weekly_metrics(report_date, FOCUS_GEO, manager_group=manager_group)
     except Exception as e:
         logger.error("Failed to collect affiliate weekly metrics: %s", e)
+        if not dry_run:
+            send_alert(f"Affiliate weekly report FAILED for {report_date} manager={manager_group}: {e}")
         return
 
     if not data.get("block1") and not data.get("block8"):
@@ -159,6 +140,8 @@ def run(
             f" (manager={manager_group or 'ALL'})."
         )
         logger.warning(msg)
+        if not dry_run:
+            send_alert(msg)
         return
 
     html_report = build_weekly_report(data)
@@ -171,9 +154,10 @@ def run(
         if preview:
             webbrowser.open(filepath.as_uri())
     else:
-        to = recipients or _get_recipients(manager_group)
-        logger.info("Sending to: %s", to)
-        success = send_email(subject, html_report, recipients=to)
+        success = send_email(
+            subject, html_report,
+            recipients=AFFILIATE_RECIPIENTS or None,
+        )
         if success:
             sent = _load_sent()
             sent.add(sent_key)
@@ -181,6 +165,7 @@ def run(
             logger.info("Affiliate weekly report sent successfully.")
         else:
             logger.error("Failed to send affiliate weekly report.")
+            send_alert(f"Affiliate weekly report SEND FAILED for {report_date} manager={manager_group}")
 
     elapsed = (datetime.now() - start_time).total_seconds()
     logger.info("Finished in %.1f seconds.", elapsed)
@@ -242,14 +227,12 @@ def main() -> None:
         for mgr in managers:
             logger.info("--- Running for manager: %s ---", mgr)
             try:
-                to = _get_recipients(mgr)
-                run(report_date, dry_run=dry_run, preview=preview, manager_group=mgr, recipients=to)
+                run(report_date, dry_run=dry_run, preview=preview, manager_group=mgr)
             except Exception as e:
                 logger.error("Failed for manager %s: %s", mgr, e)
         logger.info("--all mode completed.")
     else:
-        to = _get_recipients(manager_group) if manager_group else None
-        run(report_date, dry_run=dry_run, preview=preview, manager_group=manager_group, recipients=to)
+        run(report_date, dry_run=dry_run, preview=preview, manager_group=manager_group)
 
 
 if __name__ == "__main__":

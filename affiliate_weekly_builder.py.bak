@@ -186,58 +186,36 @@ def _build_block1(rows_ftd: list[dict], rows_dep: list[dict], periods: dict | No
             '<th class="r">NP Dep Sum</th><th class="r">Deposits USD</th>'
         )
         rows_html = ""
-        rank = 0
-        for r in rows:
-            is_total = r.get("_is_total", False)
+        for i, r in enumerate(rows, 1):
             ftd_bold = ' bold' if sort_col == "ftd" else ''
             dep_bold = ' bold' if sort_col == "dep" else ''
             gt       = r.get("group_type", "")
             gt_color = "#15803d" if gt == "Inbound" else ("#2563eb" if gt == "Acquisition" else "#6b7280")
             type_cell = (
                 f'<span style="font-size:10px;color:{gt_color};font-weight:500;">{gt}</span>'
-                if gt else ""
             )
-            if is_total:
-                total_style = (
-                    'style="background:#f0f9ff;border-top:2px solid #2563eb;'
-                    'font-weight:700;color:#1e3a5f;"'
-                )
-                rows_html += (
-                    f'<tr {total_style}>'
-                    f'<td class="gray"></td>'
-                    f'<td class="mono" style="font-weight:700;">TOTAL</td>'
-                    f'<td></td><td></td>'
-                    f'<td class="r">{_fmt_int(r["regs"])}</td>'
-                    f'<td class="r">{_fmt_pct(r["conversion_pct"])}</td>'
-                    f'<td class="r{ftd_bold}">{_fmt_int(r["ftd"])}</td>'
-                    f'<td class="r">{_fmt_usd(r["new_dep_amount"])}</td>'
-                    f'<td class="r{dep_bold}">{_fmt_usd(r["deposits_usd"])}</td>'
-                    f'</tr>'
-                )
-            else:
-                rank += 1
-                rows_html += (
-                    f'<tr>'
-                    f'<td class="gray">{rank}</td>'
-                    f'<td class="mono">{r["affiliate_id"]}</td>'
-                    f'<td class="mn">{r["manager"]}</td>'
-                    f'<td>{type_cell}</td>'
-                    f'<td class="r">{_fmt_int(r["regs"])}</td>'
-                    f'<td class="r">{_fmt_pct(r["conversion_pct"])}</td>'
-                    f'<td class="r{ftd_bold}">{_fmt_int(r["ftd"])}</td>'
-                    f'<td class="r">{_fmt_usd(r["new_dep_amount"])}</td>'
-                    f'<td class="r{dep_bold}">{_fmt_usd(r["deposits_usd"])}</td>'
-                    f'</tr>'
-                )
+            rows_html += (
+                f'<tr>'
+                f'<td class="gray">{i}</td>'
+                f'<td class="mono">{r["affiliate_id"]}</td>'
+                f'<td class="mn">{r["manager"]}</td>'
+                f'<td>{type_cell}</td>'
+                f'<td class="r">{_fmt_int(r["regs"])}</td>'
+                f'<td class="r">{_fmt_pct(r["conversion_pct"])}</td>'
+                f'<td class="r{ftd_bold}">{_fmt_int(r["ftd"])}</td>'
+                f'<td class="r">{_fmt_usd(r["new_dep_amount"])}</td>'
+                f'<td class="r{dep_bold}">{_fmt_usd(r["deposits_usd"])}</td>'
+                f'</tr>'
+            )
         return f'<table class="dt"><tr>{th}</tr>{rows_html}</table>'
 
     sub_label = (
         '<span style="font-size:11px;font-weight:600;color:#374151;display:block;margin:0 0 4px 0;">'
-        'Top 10 by FTD &mdash; min 3 FTD</span>'
+        'Top 10 by FTD</span>'
     )
     sub_dep = (
         '<span style="font-size:11px;font-weight:600;color:#374151;display:block;'
-        'margin:16px 0 4px 0;">Top 10 by Deposits &mdash; min $100/week</span>'
+        'margin:16px 0 4px 0;">Top 10 by Deposits</span>'
     )
     body = (
         sub_label + _table(rows_ftd, "ftd")
@@ -373,71 +351,27 @@ def _build_block4(rows: list[dict]) -> str:
 # Block 5 — Zero Activity
 # ---------------------------------------------------------------------------
 
-def _build_block5(rows: list[dict], rows_high_dep: list[dict] | None = None) -> str:
-    def _zero_table(rows: list[dict]) -> str:
-        if not rows:
-            return _empty("No zero-activity partners found.")
-        th = (
-            '<th>Partner ID</th><th>Type</th>'
-            '<th class="r">Hist. Deposits (12m)</th>'
-            '<th class="r">Last 4w Deposits</th>'
-        )
-        rows_html = ""
-        for r in rows:
-            gt = r.get("group_type", "")
-            gt_color = "#15803d" if gt == "Inbound" else ("#2563eb" if gt == "Acquisition" else "#6b7280")
-            type_cell = f'<span style="font-size:10px;color:{gt_color};font-weight:500;">{gt}</span>' if gt else ""
-            rows_html += (
-                f'<tr>'
-                f'<td class="mono">{r["affiliate_id"]}</td>'
-                f'<td>{type_cell}</td>'
-                f'<td class="r bold">{_fmt_usd(r["hist_deposits"])}</td>'
-                f'<td class="r"><span style="color:#dc2626;">$0</span></td>'
-                f'</tr>'
-            )
-        return f'<table class="dt"><tr>{th}</tr>{rows_html}</table>'
-
-    def _high_dep_table(rows: list[dict]) -> str:
-        if not rows:
-            return ""
-        label = (
-            '<p style="font-size:11px;font-weight:600;color:#374151;margin:0 0 4px 0;">'
-            'High Deposits, 0 FTD'
-            '<span class="badge b-red" style="margin-left:8px;">Top 15 deposits, 0 FTD (last 4w)</span>'
-            '</p>'
-        )
-        th = (
-            '<th>Partner ID</th><th>Type</th>'
-            '<th class="r">Regs</th>'
-            '<th class="r">FTD</th>'
-            '<th class="r">Deposits USD</th>'
-        )
-        rows_html = ""
-        for r in rows:
-            gt = r.get("group_type", "")
-            gt_color = "#15803d" if gt == "Inbound" else ("#2563eb" if gt == "Acquisition" else "#6b7280")
-            type_cell = f'<span style="font-size:10px;color:{gt_color};font-weight:500;">{gt}</span>' if gt else ""
-            rows_html += (
-                f'<tr>'
-                f'<td class="mono">{r["affiliate_id"]}</td>'
-                f'<td>{type_cell}</td>'
-                f'<td class="r">{_fmt_int(r["regs"])}</td>'
-                f'<td class="r"><span style="color:#dc2626;font-weight:700;">0</span></td>'
-                f'<td class="r bold">{_fmt_usd(r["deposits_usd"])}</td>'
-                f'</tr>'
-            )
-        return label + f'<table class="dt"><tr>{th}</tr>{rows_html}</table>'
-
-    zero_label = (
-        '<p style="font-size:11px;font-weight:600;color:#374151;margin:0 0 4px 0;">'
-        'Zero Deposits Last 4 Weeks'
-        '<span class="badge b-gray" style="margin-left:8px;">Had activity in 12m. TOP 15</span>'
-        '</p>'
+def _build_block5(rows: list[dict]) -> str:
+    if not rows:
+        return _section("5. Zero Activity",
+                        "Had deposits in last 12 months, 0 deposits in last 4 weeks. TOP 15",
+                        _empty("No zero-activity partners found."))
+    th = (
+        '<th>Partner ID</th><th>Manager</th>'
+        '<th class="r">Hist. Deposits (12m)</th>'
+        '<th class="r">Last 4w Deposits</th>'
     )
-    body = zero_label + _zero_table(rows)
-    if rows_high_dep:
-        body += '<div style="margin-top:20px;"></div>' + _high_dep_table(rows_high_dep)
-
+    rows_html = ""
+    for r in rows:
+        rows_html += (
+            f'<tr>'
+            f'<td class="mono">{r["affiliate_id"]}</td>'
+            f'<td class="mn">{r["manager"]}</td>'
+            f'<td class="r bold">{_fmt_usd(r["hist_deposits"])}</td>'
+            f'<td class="r"><span style="color:#dc2626;">$0</span></td>'
+            f'</tr>'
+        )
+    body = f'<table class="dt"><tr>{th}</tr>{rows_html}</table>'
     return _section("5. Zero Activity",
                     "Had deposits in last 12 months, 0 deposits in last 4 weeks. TOP 15",
                     body)
@@ -518,7 +452,7 @@ def _build_block6(no_ftd: list[dict], low_conv: list[dict]) -> str:
     body = (
         '<p style="font-size:11px;font-weight:600;color:#374151;margin:8px 0 4px 0;">'
         '6.1 Registrations without FTD'
-        '<span class="badge b-gray" style="margin-left:8px;">Conv &lt; 5%, min 5 regs (last 4w)</span>'
+        '<span class="badge b-gray" style="margin-left:8px;">Regs &gt; 30, FTD = 0 (last 4w)</span>'
         '<span class="badge b-yellow" style="margin-left:6px;">Traffic checks: 180-day cohort</span>'
         '</p>'
         + _build_block6_no_ftd(no_ftd)
@@ -700,50 +634,31 @@ def _build_block7(stats: dict) -> str:
     )
 
     # Breakdown table by group
-    # Column order: All Partners, Active 12M Base, Active This Week, %Active, %Active to 12M Base
     th = (
-        f'<th style="text-align:left;font-size:10px;color:#6b7280;'
-        f'text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;padding:6px 10px;'
-        f'border-bottom:2px solid #e5e7eb;vertical-align:bottom;">Group</th>'
-        f'<th class="r" style="font-size:10px;color:#9ca3af;text-transform:uppercase;'
-        f'letter-spacing:.04em;white-space:nowrap;padding:6px 10px;'
-        f'border-bottom:2px solid #e5e7eb;vertical-align:bottom;">All<br>Partners</th>'
-        f'<th class="r" style="font-size:10px;color:#6b7280;text-transform:uppercase;'
-        f'letter-spacing:.04em;white-space:nowrap;padding:6px 10px;'
-        f'border-bottom:2px solid #e5e7eb;vertical-align:bottom;">Active<br>12M Base</th>'
-        f'<th class="r" style="font-size:10px;color:#6b7280;text-transform:uppercase;'
-        f'letter-spacing:.04em;white-space:nowrap;padding:6px 10px;'
-        f'border-bottom:2px solid #e5e7eb;vertical-align:bottom;">Active<br>This Week</th>'
-        f'<th class="r" style="font-size:10px;color:#6b7280;text-transform:uppercase;'
-        f'letter-spacing:.04em;white-space:nowrap;padding:6px 10px;'
-        f'border-bottom:2px solid #e5e7eb;vertical-align:bottom;">%Active<br>(of 12M)</th>'
-        f'<th class="r" style="font-size:10px;color:#6b7280;text-transform:uppercase;'
-        f'letter-spacing:.04em;white-space:nowrap;padding:6px 10px;'
-        f'border-bottom:2px solid #e5e7eb;vertical-align:bottom;">%Active<br>(of All)</th>'
+        '<th style="text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;">Group</th>'
+        '<th class="r" style="font-size:11px;color:#6b7280;text-transform:uppercase;">12M Base</th>'
+        '<th class="r" style="font-size:11px;color:#9ca3af;text-transform:uppercase;">All</th>'
+        '<th class="r" style="font-size:11px;color:#6b7280;text-transform:uppercase;">Active</th>'
+        '<th class="r" style="font-size:11px;color:#6b7280;text-transform:uppercase;">% Active</th>'
     )
     row_bg = {"Inbound": "#f0fdf4", "Acquisition": "#eff6ff", "Total": "#ffffff"}
     rows_html = ""
     for r in group_rows:
         gt       = r["group_type"]
         is_total = gt == "Total"
-        pct_val      = r["pct_active"]
-        pct_to_all   = r.get("pct_active_to_all", 0)
-        pc_color     = "#15803d" if pct_val >= 50 else ("#d97706" if pct_val >= 25 else "#dc2626")
-        pc_all_color = "#15803d" if pct_to_all >= 20 else ("#d97706" if pct_to_all >= 10 else "#dc2626")
-        bg         = row_bg.get(gt, "#ffffff")
+        pct_val  = r["pct_active"]
+        pc_color = "#15803d" if pct_val >= 50 else ("#d97706" if pct_val >= 25 else "#dc2626")
+        bg       = row_bg.get(gt, "#ffffff")
         top_border = "border-top:2px solid #d1d5db;" if is_total else ""
         fw         = "font-weight:700;" if is_total else ""
         rows_html += (
             f'<tr style="background:{bg};{top_border}">'
             f'<td style="padding:8px 10px;{fw}">{gt}</td>'
-            f'<td class="r" style="padding:8px 10px;color:#9ca3af;">{r["all"]:,}</td>'
             f'<td class="r" style="padding:8px 10px;{fw}">{r["base_12m"]:,}</td>'
+            f'<td class="r" style="padding:8px 10px;color:#9ca3af;">{r["all"]:,}</td>'
             f'<td class="r" style="padding:8px 10px;{fw}">{r["active"]:,}</td>'
             f'<td class="r" style="padding:8px 10px;">'
             f'  <span style="color:{pc_color};font-weight:700;">{pct_val:.1f}%</span>'
-            f'</td>'
-            f'<td class="r" style="padding:8px 10px;">'
-            f'  <span style="color:{pc_all_color};font-weight:700;">{pct_to_all:.1f}%</span>'
             f'</td>'
             f'</tr>'
         )
@@ -798,11 +713,10 @@ def _build_block8(rows: list[dict]) -> str:
     idx = {(_w_key(r), r.get("manager",""), r.get("group_type","")): r for r in rows}
 
     metrics = [
-        ("Regs",       "regs",           False),
-        ("FTD",        "ftd",            False),
-        ("Conv%",      "conversion_pct", False),
-        ("NP Dep Sum", "ftd_amount",     True),
-        ("Deps",       "deposits_usd",   True),
+        ("Regs",    "regs",        False),
+        ("FTD",     "ftd",         False),
+        ("NP Dep Sum", "ftd_amount",  True),
+        ("Deps",    "deposits_usd",True),
     ]
 
     th_cells = (
@@ -818,15 +732,7 @@ def _build_block8(rows: list[dict]) -> str:
                 for w in weeks_str:
                     rd = idx.get((w, manager, group_type), {})
                     val = _v(rd.get(m_key))
-                    if not rd:
-                        cell_val = ""
-                    elif m_key == "conversion_pct":
-                        cell_val = _fmt_pct(val)
-                    elif is_usd:
-                        cell_val = _fmt_usd(val)
-                    else:
-                        cell_val = _fmt_int(val)
-                    cells += f'<td class="r">{cell_val}</td>'
+                    cells += f'<td class="r">{"" if not rd else (_fmt_usd(val) if is_usd else _fmt_int(val))}</td>'
                 html += (
                     f'<tr class="{tr_cls}">'
                     f'<td class="gray" style="white-space:nowrap;">{group_type if m_label == "Regs" else ""}</td>'
@@ -869,7 +775,7 @@ def _build_block9(data: dict, periods: dict) -> str:
     col_prev2    = _mlabel(p2s)
     col_prev1    = _mlabel(p1s)
     col_mtd      = f"MTD {_mlabel(cms)} ({days_elapsed}d)"
-    col_proj     = f"Prediction {_mlabel(cms)}"
+    col_proj     = "Projected"
     col_vs_prev1 = f"vs {_mlabel(p1s)}"
     col_yoy      = f"{_mlabel(yoy_s)} (full)"
     col_yoy_pct  = "YoY %"
@@ -903,7 +809,7 @@ def _build_block9(data: dict, periods: dict) -> str:
         gdata = data.get(group, {})
         is_total = group == "Total"
         tr_cls = "inbound" if group == "Inbound" else ("acquis" if group == "Acquisition" else "")
-        total_style = ' style="border-top:2px solid #1e3a5f;font-weight:700;background:#fef9c3;color:#1e3a5f;"' if is_total else ""
+        total_style = ' style="border-top:2px solid #1e3a5f;font-weight:700;background:#f0f4ff;"' if is_total else ""
 
         for m_label, m_key, is_usd in metrics:
             mdata = gdata.get(m_key, {})
@@ -934,9 +840,9 @@ def _build_block9(data: dict, periods: dict) -> str:
 
     note = (
         f'<p style="font-size:10px;color:#9ca3af;margin:6px 0 0 0;">'
-        f'Prediction = MTD / {days_elapsed} days &times; {days_in_month} days in month. '
-        f'vs {_mlabel(p1s)} = (Prediction &minus; {_mlabel(p1s)}) / {_mlabel(p1s)}. '
-        f'YoY % = (Prediction &minus; {_mlabel(yoy_s)} full) / {_mlabel(yoy_s)} full.</p>'
+        f'Projected = MTD / {days_elapsed} days &times; {days_in_month} days in month. '
+        f'vs {_mlabel(p1s)} = (Projected &minus; {_mlabel(p1s)}) / {_mlabel(p1s)}. '
+        f'YoY % = (Projected &minus; {_mlabel(yoy_s)} full) / {_mlabel(yoy_s)} full.</p>'
     )
     body = f'<table class="dt"><tr>{th}</tr>{rows_html}</table>{note}'
     subtitle = f"{col_prev2} | {col_prev1} | MTD {_mlabel(cms)} ({days_elapsed}d) | YoY"
@@ -965,7 +871,7 @@ def build_weekly_report(data: dict) -> str:
         _build_block2(data.get("block2", [])),
         _build_block3(data.get("block3", [])),
         _build_block4(data.get("block4", [])),
-        _build_block5(data.get("block5", []), data.get("block5b", [])),
+        _build_block5(data.get("block5", [])),
         _build_block6(data.get("block6_no_ftd", []), data.get("block6_low_conv", [])),
         block7_html,
         _build_block8(data.get("block8", [])),
