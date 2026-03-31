@@ -42,7 +42,7 @@ _raw_geo = os.getenv("AFFILIATE_FOCUS_GEO", _DEFAULT_FOCUS_GEO)
 FOCUS_GEO: list[str] = [c.strip() for c in _raw_geo.split(",") if c.strip()]
 
 # Base recipients added to every manager report (CMO, CFO)
-_raw_base = os.getenv("AFFILIATE_BASE_RECIPIENTS", "cmo@betandyou.com,cfo@betandyou.com")
+_raw_base = os.getenv("AFFILIATE_BASE_RECIPIENTS", "cmo@betandyou.com")
 AFFILIATE_BASE_RECIPIENTS: list[str] = [r.strip() for r in _raw_base.split(",") if r.strip()]
 
 _MANAGER_EMAILS_FILE = Path(__file__).parent / "manager_emails.json"

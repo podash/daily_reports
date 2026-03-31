@@ -103,6 +103,14 @@ def _format_message(data: dict, today: date, slot: int) -> str:
     def _fmt(v: float) -> str:
         return f"${v:,.0f}"
 
+    def _player_meta(r: dict) -> str:
+        parts = []
+        if r.get("currency"):
+            parts.append(r["currency"])
+        if r.get("affiliate_id"):
+            parts.append(f"aff:{r['affiliate_id']}")
+        return f"  [{', '.join(parts)}]" if parts else ""
+
     def _profit_block(title: str, rows: list[dict]) -> str:
         lines = [f"\n<b>{title}</b>"]
         if not rows:
@@ -110,7 +118,7 @@ def _format_message(data: dict, today: date, slot: int) -> str:
         else:
             for i, r in enumerate(rows, 1):
                 lines.append(
-                    f"  {i}. <code>{r['player_id']}</code>  "
+                    f"  {i}. <code>{r['player_id']}</code>{_player_meta(r)}  "
                     f"+{_fmt(r['amount_usd'])}  "
                     f"(wins {_fmt(r.get('winnings', 0))} / bets {_fmt(r.get('bets', 0))})"
                 )
@@ -123,7 +131,7 @@ def _format_message(data: dict, today: date, slot: int) -> str:
         else:
             for i, r in enumerate(rows, 1):
                 lines.append(
-                    f"  {i}. <code>{r['player_id']}</code>  {_fmt(r['amount_usd'])}"
+                    f"  {i}. <code>{r['player_id']}</code>{_player_meta(r)}  {_fmt(r['amount_usd'])}"
                 )
         return "\n".join(lines)
 

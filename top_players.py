@@ -67,12 +67,15 @@ def _top_casino_profit(target_date: date, limit: int = 5) -> list[dict]:
         SELECT t.user_id AS player_id,
                ROUND((SUM(t.winnings_usd) - SUM(t.turnover_usd))::numeric, 0) AS amount_usd,
                ROUND(SUM(t.winnings_usd)::numeric, 0)  AS winnings_usd,
-               ROUND(SUM(t.turnover_usd)::numeric, 0)  AS bets_usd
+               ROUND(SUM(t.turnover_usd)::numeric, 0)  AS bets_usd,
+               bu.currency_code,
+               bu.affiliate_id
         FROM aggregates.daily_player_casino_totals t
         LEFT JOIN aggregates.player_profile pp ON pp.user_id = t.user_id
+        LEFT JOIN public.bet_users bu ON bu.bnu_id = t.user_id
         WHERE t.stat_date = %s
           AND COALESCE(pp.is_partner, false) = false
-        GROUP BY t.user_id
+        GROUP BY t.user_id, bu.currency_code, bu.affiliate_id
         HAVING SUM(t.winnings_usd) - SUM(t.turnover_usd) > 0
         ORDER BY amount_usd DESC
         LIMIT %s
@@ -81,10 +84,12 @@ def _top_casino_profit(target_date: date, limit: int = 5) -> list[dict]:
     )
     return [
         {
-            "player_id":   r["player_id"],
-            "amount_usd":  float(r["amount_usd"] or 0),
-            "winnings":    float(r["winnings_usd"] or 0),
-            "bets":        float(r["bets_usd"] or 0),
+            "player_id":    r["player_id"],
+            "amount_usd":   float(r["amount_usd"] or 0),
+            "winnings":     float(r["winnings_usd"] or 0),
+            "bets":         float(r["bets_usd"] or 0),
+            "currency":     r["currency_code"] or "",
+            "affiliate_id": r["affiliate_id"] or "",
         }
         for r in rows
     ]
@@ -97,12 +102,15 @@ def _top_sport_profit(target_date: date, limit: int = 5) -> list[dict]:
         SELECT t.user_id AS player_id,
                ROUND((SUM(t.winnings_usd) - SUM(t.turnover_usd))::numeric, 0) AS amount_usd,
                ROUND(SUM(t.winnings_usd)::numeric, 0)  AS winnings_usd,
-               ROUND(SUM(t.turnover_usd)::numeric, 0)  AS bets_usd
+               ROUND(SUM(t.turnover_usd)::numeric, 0)  AS bets_usd,
+               bu.currency_code,
+               bu.affiliate_id
         FROM aggregates.daily_player_sport_totals t
         LEFT JOIN aggregates.player_profile pp ON pp.user_id = t.user_id
+        LEFT JOIN public.bet_users bu ON bu.bnu_id = t.user_id
         WHERE t.stat_date = %s
           AND COALESCE(pp.is_partner, false) = false
-        GROUP BY t.user_id
+        GROUP BY t.user_id, bu.currency_code, bu.affiliate_id
         HAVING SUM(t.winnings_usd) - SUM(t.turnover_usd) > 0
         ORDER BY amount_usd DESC
         LIMIT %s
@@ -111,10 +119,12 @@ def _top_sport_profit(target_date: date, limit: int = 5) -> list[dict]:
     )
     return [
         {
-            "player_id":   r["player_id"],
-            "amount_usd":  float(r["amount_usd"] or 0),
-            "winnings":    float(r["winnings_usd"] or 0),
-            "bets":        float(r["bets_usd"] or 0),
+            "player_id":    r["player_id"],
+            "amount_usd":   float(r["amount_usd"] or 0),
+            "winnings":     float(r["winnings_usd"] or 0),
+            "bets":         float(r["bets_usd"] or 0),
+            "currency":     r["currency_code"] or "",
+            "affiliate_id": r["affiliate_id"] or "",
         }
         for r in rows
     ]
@@ -156,37 +166,59 @@ def _top_deposits(target_date: date, limit: int = 5) -> list[dict]:
     rows = execute_query(
         """
         SELECT bd.parent_id AS player_id,
-               ROUND(SUM(bd.converted_amount)::numeric, 0) AS amount_usd
+               ROUND(SUM(bd.converted_amount)::numeric, 0) AS amount_usd,
+               bu.currency_code,
+               bu.affiliate_id
         FROM public.bet_deposits bd
         LEFT JOIN aggregates.player_profile pp ON pp.user_id = bd.parent_id
+        LEFT JOIN public.bet_users bu ON bu.bnu_id = bd.parent_id
         WHERE bd.date_only = %s
           AND bd.status = 'OK'
           AND bd.converted_amount > 0
           AND COALESCE(pp.is_partner, false) = false
-        GROUP BY bd.parent_id
+        GROUP BY bd.parent_id, bu.currency_code, bu.affiliate_id
         ORDER BY amount_usd DESC
         LIMIT %s
         """,
         (target_date, limit),
     )
-    return [{"player_id": r["player_id"], "amount_usd": float(r["amount_usd"] or 0)} for r in rows]
+    return [
+        {
+            "player_id":    r["player_id"],
+            "amount_usd":   float(r["amount_usd"] or 0),
+            "currency":     r["currency_code"] or "",
+            "affiliate_id": r["affiliate_id"] or "",
+        }
+        for r in rows
+    ]
 
 
 def _top_withdrawals(target_date: date, limit: int = 5) -> list[dict]:
     rows = execute_query(
         """
         SELECT bw.parent_id AS player_id,
-               ROUND(SUM(bw.converted_amount)::numeric, 0) AS amount_usd
+               ROUND(SUM(bw.converted_amount)::numeric, 0) AS amount_usd,
+               bu.currency_code,
+               bu.affiliate_id
         FROM public.bet_withdrawals bw
         LEFT JOIN aggregates.player_profile pp ON pp.user_id = bw.parent_id
+        LEFT JOIN public.bet_users bu ON bu.bnu_id = bw.parent_id
         WHERE bw.date_only = %s
           AND bw.status = 'Approved'
           AND bw.converted_amount > 0
           AND COALESCE(pp.is_partner, false) = false
-        GROUP BY bw.parent_id
+        GROUP BY bw.parent_id, bu.currency_code, bu.affiliate_id
         ORDER BY amount_usd DESC
         LIMIT %s
         """,
         (target_date, limit),
     )
-    return [{"player_id": r["player_id"], "amount_usd": float(r["amount_usd"] or 0)} for r in rows]
+    return [
+        {
+            "player_id":    r["player_id"],
+            "amount_usd":   float(r["amount_usd"] or 0),
+            "currency":     r["currency_code"] or "",
+            "affiliate_id": r["affiliate_id"] or "",
+        }
+        for r in rows
+    ]

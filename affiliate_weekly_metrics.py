@@ -897,38 +897,38 @@ def fetch_block8_totals_by_week(periods: dict, focus_geo: list[str], affiliate_i
 def fetch_block9_month_comparison(periods: dict, affiliate_ids: list[int] | None = None) -> dict:
     """
     FTD, FTD amount, deposits split by group_type (Inbound / Acquisition / Total).
-    Periods: prev2 month, prev1 month, current MTD, YoY.
-    Uses affiliate_daily_stats aggregate for all metrics - avoids slow bet_deposits JOINs.
+    Periods: prev2 month, prev1 month, current MTD.
+    All periods use affiliate_monthly_stats for consistent NP Dep Sum logic
+    (all deposits of new player within their FTD month, same as Power BI).
     """
-    clause_ads = _aff_clause(affiliate_ids, alias="ads")
+    clause_ams = _aff_clause(affiliate_ids, alias="ams")
     extra      = [affiliate_ids] if affiliate_ids else []
 
-    def _fetch_month(start: date, end: date) -> list[dict]:
+    def _fetch_month(month_start: date) -> list[dict]:
         return execute_query(
             f"""
             WITH {_AFF_INFO_CTE}
             SELECT
                 COALESCE(ai.group_type, 'Other')                          AS group_type,
-                SUM(ads.ftd_count)                                        AS ftd,
-                ROUND(SUM(ads.new_players_deposit_sum)::numeric, 0)       AS ftd_amount,
-                ROUND(SUM(ads.deposits_amount_usd)::numeric, 0)           AS deposits_usd
-            FROM aggregates.affiliate_daily_stats ads
-            LEFT JOIN aff_info ai ON ai.affiliate_id = ads.affiliate_id
-            WHERE ads.stat_date BETWEEN %s AND %s
-              {clause_ads}
+                SUM(ams.ftd_count)                                        AS ftd,
+                ROUND(SUM(ams.new_players_deposit_sum)::numeric, 0)       AS ftd_amount,
+                ROUND(SUM(ams.deposits_amount_usd)::numeric, 0)           AS deposits_usd
+            FROM aggregates.affiliate_monthly_stats ams
+            LEFT JOIN aff_info ai ON ai.affiliate_id = ams.affiliate_id
+            WHERE ams.month_start = %s
+              {clause_ams}
             GROUP BY ai.group_type
             ORDER BY ai.group_type
             """,
-            tuple([start, end] + extra),
+            tuple([month_start] + extra),
         )
 
     def _index(rows: list[dict]) -> dict:
         return {r["group_type"]: r for r in rows}
 
-    prev2 = _index(_fetch_month(periods["prev2_month_start"], periods["prev2_month_end"]))
-    prev1 = _index(_fetch_month(periods["prev_month_start"],  periods["prev_month_end"]))
-    mtd   = _index(_fetch_month(periods["current_month_start"], periods["current_month_end"]))
-    yoy   = _index(_fetch_month(periods["yoy_month_start"],    periods["yoy_month_end"]))
+    prev2 = _index(_fetch_month(periods["prev2_month_start"]))
+    prev1 = _index(_fetch_month(periods["prev_month_start"]))
+    mtd   = _index(_fetch_month(periods["current_month_start"]))
 
     days_elapsed  = periods["days_elapsed"]
     days_in_month = periods["days_in_month"]
@@ -941,13 +941,11 @@ def fetch_block9_month_comparison(periods: dict, affiliate_ids: list[int] | None
         p2 = prev2.get(group, {})
         p1 = prev1.get(group, {})
         m  = mtd.get(group, {})
-        y  = yoy.get(group, {})
         result[group] = {}
         for metric in ("ftd", "ftd_amount", "deposits_usd"):
             p2_val  = float(p2.get(metric) or 0)
             p1_val  = float(p1.get(metric) or 0)
             mtd_val = float(m.get(metric)  or 0)
-            yoy_val = float(y.get(metric)  or 0)
             projected = round(mtd_val / days_elapsed * days_in_month, 0) if days_elapsed else 0
             result[group][metric] = {
                 "prev2":     p2_val,
@@ -955,27 +953,22 @@ def fetch_block9_month_comparison(periods: dict, affiliate_ids: list[int] | None
                 "mtd":       mtd_val,
                 "projected": projected,
                 "vs_prev1":  _pct(projected, p1_val),
-                "yoy":       yoy_val,
-                "yoy_pct":   _pct(projected, yoy_val),
             }
 
     # Total = Inbound + Acquisition + Other
     result["Total"] = {}
     for metric in ("ftd", "ftd_amount", "deposits_usd"):
         base_groups = ("Inbound", "Acquisition", "Other")
-        t_prev2  = sum(result[g][metric]["prev2"]     for g in base_groups)
-        t_prev1  = sum(result[g][metric]["prev1"]     for g in base_groups)
-        t_mtd    = sum(result[g][metric]["mtd"]       for g in base_groups)
-        t_yoy    = sum(result[g][metric]["yoy"]       for g in base_groups)
-        t_proj   = round(t_mtd / days_elapsed * days_in_month, 0) if days_elapsed else 0
+        t_prev2 = sum(result[g][metric]["prev2"] for g in base_groups)
+        t_prev1 = sum(result[g][metric]["prev1"] for g in base_groups)
+        t_mtd   = sum(result[g][metric]["mtd"]   for g in base_groups)
+        t_proj  = round(t_mtd / days_elapsed * days_in_month, 0) if days_elapsed else 0
         result["Total"][metric] = {
             "prev2":     t_prev2,
             "prev1":     t_prev1,
             "mtd":       t_mtd,
             "projected": t_proj,
             "vs_prev1":  _pct(t_proj, t_prev1),
-            "yoy":       t_yoy,
-            "yoy_pct":   _pct(t_proj, t_yoy),
         }
 
     return result

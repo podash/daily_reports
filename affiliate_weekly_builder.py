@@ -854,12 +854,11 @@ def _build_block8(rows: list[dict]) -> str:
 
 def _build_block9(data: dict, periods: dict) -> str:
     if not data:
-        return _section("9. Month Comparison", "Last 2 months + MTD + YoY", _empty())
+        return _section("9. Month Comparison", "Last 2 months + MTD", _empty())
 
     p2s = periods["prev2_month_start"]
     p1s = periods["prev_month_start"]
     cms = periods["current_month_start"]
-    yoy_s = periods.get("yoy_month_start", cms.replace(year=cms.year - 1))
     days_elapsed  = periods["days_elapsed"]
     days_in_month = periods["days_in_month"]
 
@@ -871,8 +870,6 @@ def _build_block9(data: dict, periods: dict) -> str:
     col_mtd      = f"MTD {_mlabel(cms)} ({days_elapsed}d)"
     col_proj     = f"Prediction {_mlabel(cms)}"
     col_vs_prev1 = f"vs {_mlabel(p1s)}"
-    col_yoy      = f"{_mlabel(yoy_s)} (full)"
-    col_yoy_pct  = "YoY %"
 
     th = (
         f'<th>Group</th><th>Metric</th>'
@@ -881,8 +878,6 @@ def _build_block9(data: dict, periods: dict) -> str:
         f'<th class="r">{col_mtd}</th>'
         f'<th class="r">{col_proj}</th>'
         f'<th class="r">{col_vs_prev1}</th>'
-        f'<th class="r">{col_yoy}</th>'
-        f'<th class="r">{col_yoy_pct}</th>'
     )
 
     metrics = [
@@ -911,9 +906,7 @@ def _build_block9(data: dict, periods: dict) -> str:
             p1_val   = _v(mdata.get("prev1"))
             mtd_val  = _v(mdata.get("mtd"))
             proj_val = _v(mdata.get("projected"))
-            yoy_val  = _v(mdata.get("yoy"))
             vs_p1    = mdata.get("vs_prev1")
-            yoy_pct  = mdata.get("yoy_pct")
 
             def _cell(v):
                 return _fmt_usd(v) if is_usd else _fmt_int(v)
@@ -927,19 +920,16 @@ def _build_block9(data: dict, periods: dict) -> str:
                 f'<td class="r bold">{_cell(mtd_val)}</td>'
                 f'<td class="r">{_cell(proj_val)}</td>'
                 f'<td class="r">{_pct_delta(vs_p1)}</td>'
-                f'<td class="r gray">{_cell(yoy_val)}</td>'
-                f'<td class="r">{_pct_delta(yoy_pct)}</td>'
                 f'</tr>'
             )
 
     note = (
         f'<p style="font-size:10px;color:#9ca3af;margin:6px 0 0 0;">'
         f'Prediction = MTD / {days_elapsed} days &times; {days_in_month} days in month. '
-        f'vs {_mlabel(p1s)} = (Prediction &minus; {_mlabel(p1s)}) / {_mlabel(p1s)}. '
-        f'YoY % = (Prediction &minus; {_mlabel(yoy_s)} full) / {_mlabel(yoy_s)} full.</p>'
+        f'vs {_mlabel(p1s)} = (Prediction &minus; {_mlabel(p1s)}) / {_mlabel(p1s)}.</p>'
     )
     body = f'<table class="dt"><tr>{th}</tr>{rows_html}</table>{note}'
-    subtitle = f"{col_prev2} | {col_prev1} | MTD {_mlabel(cms)} ({days_elapsed}d) | YoY"
+    subtitle = f"{col_prev2} | {col_prev1} | MTD {_mlabel(cms)} ({days_elapsed}d)"
     return _section("9. Month Comparison", subtitle, body)
 
 

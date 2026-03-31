@@ -25,7 +25,7 @@
   },
   "affiliate 7": {
     "name": "Anastasiia",
-    "email": "affiliate7@betandyou.com"
+    "email": "affiliate7@betandyou.com,affiliate4@betandyou.com"
   },
   "affiliate 10": {
     "name": "Chaoui",
@@ -41,19 +41,23 @@
   },
   "affiliate 14": {
     "name": "Olha",
-    "email": "affiliate14@betandyou.com"
+    "email": "affiliate14@betandyou.com,affiliate4@betandyou.com"
   },
   "affiliate 15": {
     "name": "Vadim",
-    "email": "affiliate16@betandyou.com"
+    "email": "affiliate16@betandyou.com,affiliate4@betandyou.com"
   },
   "affiliate 16": {
     "name": "Taras",
-    "email": "affiliate12@betandyou.com"
+    "email": "affiliate12@betandyou.com,mediabuyer1@betandyou.com"
   },
   "affiliate 17": {
     "name": "Polina",
-    "email": "affiliate17@betandyou.com"
+    "email": "affiliate17@betandyou.com,affiliate4@betandyou.com"
+  },
+  "affiliate 19": {
+    "name": "Gleb",
+    "email": "mediabuyer1@betandyou.com"
   },
   "mediabuy gleb": {
     "name": "Gleb",
