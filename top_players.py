@@ -133,11 +133,13 @@ def _top_sport_profit(target_date: date, limit: int = 5) -> list[dict]:
 def _top_casino_winnings(target_date: date) -> list[dict]:
     rows = execute_query(
         """
-        SELECT user_id AS player_id,
-               ROUND(SUM(winnings_usd)::numeric, 0) AS amount_usd
-        FROM aggregates.daily_player_casino_totals
-        WHERE stat_date = %s
-        GROUP BY user_id
+        SELECT t.user_id AS player_id,
+               ROUND(SUM(t.winnings_usd)::numeric, 0) AS amount_usd
+        FROM aggregates.daily_player_casino_totals t
+        LEFT JOIN aggregates.player_profile pp ON pp.user_id = t.user_id
+        WHERE t.stat_date = %s
+          AND COALESCE(pp.is_partner, false) = false
+        GROUP BY t.user_id
         ORDER BY amount_usd DESC
         LIMIT 5
         """,
@@ -149,11 +151,13 @@ def _top_casino_winnings(target_date: date) -> list[dict]:
 def _top_sport_winnings(target_date: date) -> list[dict]:
     rows = execute_query(
         """
-        SELECT user_id AS player_id,
-               ROUND(SUM(winnings_usd)::numeric, 0) AS amount_usd
-        FROM aggregates.daily_player_sport_totals
-        WHERE stat_date = %s
-        GROUP BY user_id
+        SELECT t.user_id AS player_id,
+               ROUND(SUM(t.winnings_usd)::numeric, 0) AS amount_usd
+        FROM aggregates.daily_player_sport_totals t
+        LEFT JOIN aggregates.player_profile pp ON pp.user_id = t.user_id
+        WHERE t.stat_date = %s
+          AND COALESCE(pp.is_partner, false) = false
+        GROUP BY t.user_id
         ORDER BY amount_usd DESC
         LIMIT 5
         """,

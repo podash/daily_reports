@@ -107,8 +107,6 @@ def _format_message(data: dict, today: date, slot: int) -> str:
         parts = []
         if r.get("currency"):
             parts.append(r["currency"])
-        if r.get("affiliate_id"):
-            parts.append(f"aff:{r['affiliate_id']}")
         return f"  [{', '.join(parts)}]" if parts else ""
 
     def _profit_block(title: str, rows: list[dict]) -> str:

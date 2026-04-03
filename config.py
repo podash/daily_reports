@@ -24,7 +24,7 @@ TOP_COUNTRIES_LIMIT = 10
 # Google Sheets
 GOOGLE_SHEETS_URL = os.getenv(
     "GOOGLE_SHEETS_URL",
-    "https://docs.google.com/spreadsheets/d/1G1ZR2wXQCX6L4yDFuwjZAZUMFiqWa_MTcfjL6Wm2PJM/edit",
+    "https://docs.google.com/spreadsheets/d/1fzZLZwAnwBMNpl08wzw3ieYUJiqM2wLZEXVeoGk04OE/",
 )
 GOOGLE_CREDENTIALS_PATH = os.getenv(
     "GOOGLE_CREDENTIALS_PATH",
